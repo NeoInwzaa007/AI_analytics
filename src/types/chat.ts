@@ -5,7 +5,7 @@ export interface Message {
     role: 'user' | 'ai';
     content: string;
     type: MessageType;
-    chartData?: any[];
-    chartConfig?: any; // For flexibility
+    chartData?: Record<string, unknown>[];
+    chartConfig?: Record<string, unknown>; // For flexibility
     timestamp: Date;
 }

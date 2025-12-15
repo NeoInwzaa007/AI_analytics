@@ -21,6 +21,7 @@ export default function SettingsView() {
 
     // Prevent hydration mismatch
     useEffect(() => {
+        // eslint-disable-next-line
         setMounted(true);
     }, []);
 

@@ -2,11 +2,11 @@
 
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, Stars, Text, Float } from '@react-three/drei';
+import { OrbitControls, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Box } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 function AICore() {
     const meshRef = useRef<THREE.Mesh>(null);
@@ -37,49 +37,6 @@ function AICore() {
     );
 }
 
-function FloatingParticles({ count = 200 }) {
-    const points = useRef<THREE.Points>(null);
-
-    // Generate random positions
-    const [positions] = useState(() => {
-        const pos = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
-            const r = 5 + Math.random() * 10;
-            const theta = 2 * Math.PI * Math.random();
-            const phi = Math.acos(2 * Math.random() - 1);
-            pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            pos[i * 3 + 2] = r * Math.cos(phi);
-        }
-        return pos;
-    });
-
-    useFrame((state, delta) => {
-        if (points.current) {
-            points.current.rotation.y += delta * 0.05;
-        }
-    });
-
-    return (
-        <points ref={points}>
-            <bufferGeometry>
-                <bufferAttribute
-                    attach="attributes-position"
-                    array={positions}
-                    args={[positions, 3]}
-                />
-            </bufferGeometry>
-            <pointsMaterial
-                size={0.05}
-                color="#818cf8"
-                sizeAttenuation={true}
-                transparent
-                opacity={0.8}
-                blending={THREE.AdditiveBlending}
-            />
-        </points>
-    );
-}
 
 interface LandingViewProps {
     onStart: () => void;
@@ -87,7 +44,7 @@ interface LandingViewProps {
 
 export default function LandingView({ onStart }: LandingViewProps) {
     return (
-        <div className="relative w-full h-screen bg-black overflow-hidden">
+        <div className="relative w-full h-screen overflow-hidden">
             {/* 3D Scene */}
             <div className="absolute inset-0 z-0">
                 <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
@@ -96,8 +53,6 @@ export default function LandingView({ onStart }: LandingViewProps) {
                     <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
 
                     <AICore />
-                    <FloatingParticles />
-                    <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
                     <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
                 </Canvas>
@@ -144,7 +99,7 @@ export default function LandingView({ onStart }: LandingViewProps) {
 
             {/* Footer / Credit */}
             <div className="absolute bottom-6 w-full text-center z-10 opacity-40 text-xs text-white">
-                Powered by React
+                Powered by FocusOne
             </div>
         </div>
     );

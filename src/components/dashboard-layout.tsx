@@ -31,7 +31,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,7 +64,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
     };
 
     return (
-        <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+        <div className="flex flex-col h-full text-sidebar-foreground">
             <div className="p-6 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => onNavigate('landing')}>
                 <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                     <span className="font-bold text-primary-foreground">AI</span>
@@ -224,23 +223,23 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
 export default function DashboardLayout({ children, currentView, onNavigate }: DashboardLayoutProps) {
     return (
-        <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
+        <div className="flex h-screen w-full bg-background/30 text-foreground overflow-hidden font-sans">
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex w-64 flex-col border-r border-sidebar-border bg-sidebar shrink-0">
+            <aside className="hidden md:flex w-64 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-md shrink-0">
                 <SidebarContent currentView={currentView} onNavigate={onNavigate} />
             </aside>
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 {/* Mobile Header with Hamburger */}
-                <header className="flex md:hidden h-14 items-center border-b border-sidebar-border bg-sidebar px-4 shrink-0">
+                <header className="flex md:hidden h-14 items-center border-b border-sidebar-border bg-sidebar/80 backdrop-blur-md px-4 shrink-0">
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="mr-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                                 <Menu className="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="p-0 border-r border-sidebar-border bg-sidebar w-72">
+                        <SheetContent side="left" className="p-0 border-r border-sidebar-border bg-sidebar/80 backdrop-blur-md w-72">
                             <SidebarContent currentView={currentView} onNavigate={(view) => {
                                 onNavigate(view);
                                 // Note: In a real app we'd close the sheet here, 

@@ -3,7 +3,7 @@ import { MessageType } from "@/types/chat";
 export interface N8nResponse {
     answer: string;
     chartType?: MessageType; // 'text' | 'chart'
-    chartData?: any[];
+    chartData?: Record<string, unknown>[];
 }
 
 export class ApiError extends Error {

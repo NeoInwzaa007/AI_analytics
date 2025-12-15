@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Message } from '@/types/chat';
-import { sendMessageToN8n, ApiError } from '@/lib/api';
+import { sendMessageToN8n } from '@/lib/api';
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -71,7 +71,7 @@ export default function ChatView() {
     };
 
     return (
-        <div className="flex flex-col h-full relative bg-background">
+        <div className="flex flex-col h-full relative">
             {/* Header */}
             <div className="flex flex-col space-y-2 p-4 md:p-6 md:pb-2">
                 <h2 className="text-xl md:text-3xl font-bold tracking-tight text-foreground">Chat Query</h2>
@@ -143,7 +143,7 @@ export default function ChatView() {
                 </div>
             </ScrollArea>
 
-            <div className="p-3 md:p-4 bg-background border-t border-border absolute bottom-0 w-full z-10">
+            <div className="p-3 md:p-4 bg-background/80 backdrop-blur-md border-t border-border absolute bottom-0 w-full z-10">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center">
                     <Input
                         value={inputValue}

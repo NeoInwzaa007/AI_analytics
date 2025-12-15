@@ -92,7 +92,17 @@ export default function ConnectionsView() {
             const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n.your-domain.com/webhook/database-connect-placeholder';
 
             // Construct payload dynamically
-            const payload: any = {
+            interface ConnectionPayload {
+                type: string;
+                connectionName: string;
+                database: string;
+                host?: string;
+                port?: number;
+                user?: string;
+                password?: string;
+            }
+
+            const payload: ConnectionPayload = {
                 type: formData.dbType,
                 connectionName: formData.connectionName,
                 database: formData.dbName,
@@ -316,7 +326,7 @@ export default function ConnectionsView() {
                                 </div>
                                 <p className="text-center font-medium">No connection selected</p>
                                 <p className="text-center text-sm mt-1 max-w-xs">
-                                    Enter your database credentials and click "Test & Connect" to preview the schema.
+                                    Enter your database credentials and click &quot;Test & Connect&quot; to preview the schema.
                                 </p>
                             </div>
                         )}
