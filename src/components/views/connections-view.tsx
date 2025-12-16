@@ -89,7 +89,8 @@ export default function ConnectionsView() {
         setFetchedSchema(null);
 
         try {
-            const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n.your-domain.com/webhook/database-connect-placeholder';
+            // Use internal API proxy to avoid CORS
+            const webhookUrl = '/api/db-connect';
 
             // Construct payload dynamically
             interface ConnectionPayload {

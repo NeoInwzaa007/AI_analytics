@@ -14,11 +14,8 @@ export class ApiError extends Error {
 }
 
 export async function sendMessageToN8n(messageContent: string): Promise<N8nResponse> {
-    const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
-
-    if (!webhookUrl) {
-        throw new Error('Configuration Error: NEXT_PUBLIC_N8N_WEBHOOK_URL is missing.');
-    }
+    // Use internal API proxy to avoid CORS
+    const webhookUrl = '/api/chat';
 
     try {
         const response = await fetch(webhookUrl, {
@@ -30,7 +27,20 @@ export async function sendMessageToN8n(messageContent: string): Promise<N8nRespo
         });
 
         if (!response.ok) {
-            throw new ApiError(response.status, `Server error: ${response.statusText}`);
+            let errorMessage = `Server error: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                console.error("API Proxy Error Details:", JSON.stringify(errorData, null, 2));
+                if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+                if (errorData.details) {
+                    errorMessage += ` - ${errorData.details}`;
+                }
+            } catch {
+                // Could not parse JSON, use default
+            }
+            throw new ApiError(response.status, errorMessage);
         }
 
         const data = await response.json();
