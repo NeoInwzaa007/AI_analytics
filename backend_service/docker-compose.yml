@@ -4,10 +4,8 @@ services:
   db:
     image: postgres:15
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: n8n_data
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -20,12 +18,8 @@ services:
     restart: always
     ports:
       - "8000:8000"
-    environment:
-      DB_HOST: db
-      DB_NAME: n8n_data
-      DB_USER: postgres
-      DB_PASS: password
-      API_KEY: my-secret-api-key
+    env_file:
+      - .env
     depends_on:
       - db
 
