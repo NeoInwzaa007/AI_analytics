@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS connections (
     database VARCHAR(100),
     username VARCHAR(100),
     password TEXT, -- Encrypted
+    status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

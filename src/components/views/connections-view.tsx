@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Database, Shield, Server } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useConnectionStore } from "@/store/useConnectionStore";
 
 // Mock schema response type
 interface SchemaTable {
@@ -18,6 +19,7 @@ interface SchemaTable {
 }
 
 export default function ConnectionsView() {
+    const { setConnection } = useConnectionStore();
     const [isLoading, setIsLoading] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [fetchedSchema, setFetchedSchema] = useState<SchemaTable[] | null>(null);
@@ -130,9 +132,16 @@ export default function ConnectionsView() {
             }
 
             const data = await response.json();
-            setFetchedSchema(data);
-            setIsConnected(true);
-            toast.success("Successfully connected to database!");
+
+            if (data.success) {
+                setFetchedSchema(data.schema);
+                setIsConnected(true);
+                // Save to global store
+                setConnection(data.connectionId, formData.connectionName);
+                toast.success("Successfully connected and saved!");
+            } else {
+                throw new Error("Invalid response format");
+            }
 
         } catch (error) {
             console.error("Connection error:", error);

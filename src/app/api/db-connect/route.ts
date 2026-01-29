@@ -61,12 +61,7 @@ export async function POST(request: Request) {
 
         const data = await response.json();
 
-        // Map backend schema format if necessary, or just return as is
-        // Current backend returns: { status: 'success', schema: { table: [{column, type}] } }
-        // Frontend expects: [{ table: string, columns: string[] }] but can adapt
-
-        // Let's adapt to what frontend likely expects based on connections-view.tsx:
-        // interface SchemaTable { table: string; columns: string[]; }
+        // Backend returns: { status: 'success', id: <number>, schema: { ... } }
 
         const rawSchema = data.schema;
         const adaptedSchema = Object.keys(rawSchema).map(tableName => ({
@@ -74,7 +69,11 @@ export async function POST(request: Request) {
             columns: rawSchema[tableName].map((col: any) => `${col.column} (${col.type})`)
         }));
 
-        return NextResponse.json(adaptedSchema);
+        return NextResponse.json({
+            success: true,
+            connectionId: data.id,
+            schema: adaptedSchema
+        });
 
     } catch (error) {
         console.error('Gateway Error:', error);

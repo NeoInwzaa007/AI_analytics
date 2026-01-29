@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Message } from '@/types/chat';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { DynamicChart } from '@/components/ui/dynamic-chart';
 
 const INITIAL_MESSAGES: Message[] = [
     {
@@ -30,12 +30,18 @@ const INITIAL_MESSAGES: Message[] = [
         role: 'ai',
         content: 'Here is the sales performance breakdown by product category for Q4. We saw a 20% uptake in Subscription Pro.',
         type: 'chart',
-        chartData: [
-            { name: 'Basic', sales: 4000 },
-            { name: 'Pro', sales: 3000 },
-            { name: 'Enterprise', sales: 2000 },
-            { name: 'Add-ons', sales: 2780 },
-        ],
+        chart: {
+            type: 'bar',
+            title: 'Q4 Sales Performance',
+            xKey: 'name',
+            yKey: 'sales',
+            data: [
+                { name: 'Basic', sales: 4000 },
+                { name: 'Pro', sales: 3000 },
+                { name: 'Enterprise', sales: 2000 },
+                { name: 'Add-ons', sales: 2780 },
+            ]
+        },
         timestamp: new Date('2024-01-01T09:01:05')
     }
 ];
@@ -106,41 +112,8 @@ export default function ChatInterface() {
                                 </div>
 
                                 {/* Chart Render */}
-                                {message.type === 'chart' && message.chartData && (
-                                    <Card className="mt-4 w-full h-[250px] md:h-[350px] bg-neutral-900 border-neutral-800 text-neutral-100 overflow-hidden">
-                                        <CardContent className="h-full w-full p-2 md:p-4 md:pt-6">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={message.chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                                                    <XAxis
-                                                        dataKey="name"
-                                                        stroke="#888888"
-                                                        fontSize={10}
-                                                        tickLine={false}
-                                                        axisLine={false}
-                                                    />
-                                                    <YAxis
-                                                        stroke="#888888"
-                                                        fontSize={10}
-                                                        tickLine={false}
-                                                        axisLine={false}
-                                                        tickFormatter={(value) => `$${value}`}
-                                                    />
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #333', borderRadius: '8px' }}
-                                                        itemStyle={{ color: '#fff' }}
-                                                        cursor={{ fill: '#2a2a2a' }}
-                                                    />
-                                                    <Bar
-                                                        dataKey="sales"
-                                                        fill="#2563eb"
-                                                        radius={[4, 4, 0, 0]}
-                                                        maxBarSize={50}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </CardContent>
-                                    </Card>
+                                {message.type === 'chart' && message.chart && (
+                                    <DynamicChart chart={message.chart} />
                                 )}
 
                                 <span

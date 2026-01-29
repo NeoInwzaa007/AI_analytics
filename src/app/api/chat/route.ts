@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-    // Define specific variables for scope visibility
     let targetUrl = '';
 
     try {
         const body = await request.json();
-        const webhookUrl = process.env.NEXT_PUBLIC_N8N_CHAT_WEBHOOK;
+        const { message, connection_id } = body;
+
+        // Validation
+        if (!message || !connection_id) {
+            return NextResponse.json(
+                { error: 'Missing required fields: message and connection_id' },
+                { status: 400 }
+            );
+        }
+
+        const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.NEXT_PUBLIC_N8N_CHAT_WEBHOOK;
 
         if (!webhookUrl) {
             console.error("DEBUG: Webhook URL is missing");
@@ -25,7 +34,7 @@ export async function POST(request: Request) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({ message, connection_id }),
         });
 
         if (!response.ok) {

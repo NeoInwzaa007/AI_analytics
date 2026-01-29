@@ -5,8 +5,10 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LayoutDashboard, MessageSquare, Settings, Menu, Database } from "lucide-react";
+import { useAuthStore } from "@/store/use-auth-store";
+import { toast } from "sonner";
 
-export type ViewType = 'dashboard' | 'chat' | 'settings' | 'connections' | 'landing';
+export type ViewType = 'dashboard' | 'chat' | 'settings' | 'connections' | 'landing' | 'sql';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -14,7 +16,7 @@ interface DashboardLayoutProps {
     onNavigate: (view: ViewType) => void;
 }
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MoreHorizontal, Pencil, Trash2, LogOut } from "lucide-react";
 import {
     DropdownMenu,
@@ -34,19 +36,76 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useChatStore } from "@/store/useChatStore";
 
 const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, onNavigate: (view: ViewType) => void }) => {
-    const [recentChats, setRecentChats] = useState([
-        { id: '1', title: 'ผลกำไรไตรมาสที่ 3' },
-        { id: '2', title: 'อัตราการเติบโตของลูกค้า' },
-        { id: '3', title: 'แผนการตลาด' },
-    ]);
+    // Initialize with empty array as requested
+    const [recentChats, setRecentChats] = useState<any[]>([]);
+
+    // Rename Dialog State
     const [editingChat, setEditingChat] = useState<{ id: string, title: string } | null>(null);
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
     const [newTitle, setNewTitle] = useState("");
 
-    const handleDelete = (id: string) => {
-        setRecentChats(prev => prev.filter(chat => chat.id !== id));
+    // Create New Chat Dialog State
+    const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
+    const [newChatTitle, setNewChatTitle] = useState("");
+
+    // Store for navigation
+    const { setActiveSession } = useChatStore();
+
+    // Fetch Chats on Mount
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                // Get token from auth store
+                const token = useAuthStore.getState().token;
+
+                if (!token) return;
+
+                const res = await fetch('http://localhost:8000/api/chat/sessions', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.status === 401) {
+                    useAuthStore.getState().logout();
+                    return;
+                }
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setRecentChats(data);
+                }
+            } catch (err) {
+                console.error("Failed to load history", err);
+            }
+        };
+        fetchSessions();
+    }, []);
+
+    const handleDelete = async (id: string) => {
+        try {
+            const token = useAuthStore.getState().token;
+            const res = await fetch(`http://localhost:8000/api/chat/sessions/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                setRecentChats(prev => prev.filter(chat => chat.id !== id));
+                toast.success("Chat deleted");
+                // If deleted active session, navigate away or clear?
+                if (useChatStore.getState().activeSessionId === id) {
+                    useChatStore.getState().setActiveSession(null);
+                    onNavigate('dashboard');
+                }
+            } else {
+                toast.error("Failed to delete chat");
+            }
+        } catch (err) {
+            console.error("Delete error", err);
+            toast.error("Error deleting chat");
+        }
     };
 
     const startRename = (chat: { id: string, title: string }) => {
@@ -55,12 +114,74 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
         setIsRenameDialogOpen(true);
     };
 
-    const handleRename = () => {
+    const handleRename = async () => {
         if (editingChat && newTitle.trim()) {
-            setRecentChats(prev => prev.map(c => c.id === editingChat.id ? { ...c, title: newTitle.trim() } : c));
-            setIsRenameDialogOpen(false);
-            setEditingChat(null);
+            try {
+                const token = useAuthStore.getState().token;
+
+                const res = await fetch(`http://localhost:8000/api/chat/sessions/${editingChat.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title: newTitle.trim() })
+                });
+
+                if (res.ok) {
+                    setRecentChats(prev => prev.map(c => c.id === editingChat.id ? { ...c, title: newTitle.trim() } : c));
+                    setIsRenameDialogOpen(false);
+                    setEditingChat(null);
+                    toast.success("Chat renamed");
+                } else {
+                    toast.error("Failed to rename chat");
+                }
+            } catch (err) {
+                console.error("Rename error", err);
+                toast.error("Error renaming chat");
+            }
+        } else {
+            toast.error("Please enter a valid name");
         }
+    };
+
+    const handleCreateChat = async () => {
+        if (!newChatTitle.trim()) {
+            toast.error("Please enter a chat title");
+            return;
+        }
+
+        try {
+            const token = useAuthStore.getState().token;
+            const res = await fetch('http://localhost:8000/api/chat/sessions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title: newChatTitle.trim() })
+            });
+
+            if (res.ok) {
+                const newSession = await res.json();
+                setRecentChats(prev => [newSession, ...prev]); // Add to top
+                setActiveSession(newSession.id);
+                onNavigate('chat');
+                setIsNewChatDialogOpen(false);
+                setNewChatTitle("");
+                toast.success("Chat created");
+            } else {
+                toast.error("Failed to create chat");
+            }
+        } catch (err) {
+            console.error("Create chat error", err);
+            toast.error("Error creating chat");
+        }
+    };
+
+    const handleChatClick = (id: string) => {
+        setActiveSession(id);
+        onNavigate('chat');
     };
 
     return (
@@ -90,7 +211,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                             <Button
                                 variant={currentView === 'chat' ? 'secondary' : 'ghost'}
                                 className={`w-full justify-start ${currentView === 'chat' ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-                                onClick={() => onNavigate('chat')}
+                                onClick={() => setIsNewChatDialogOpen(true)}
                             >
                                 <MessageSquare className="mr-2 h-4 w-4" />
                                 Chat Query
@@ -102,6 +223,14 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                             >
                                 <Database className="mr-2 h-4 w-4" />
                                 Connections
+                            </Button>
+                            <Button
+                                variant={currentView === 'sql' ? 'secondary' : 'ghost'}
+                                className={`w-full justify-start ${currentView === 'sql' ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+                                onClick={() => onNavigate('sql')}
+                            >
+                                <Database className="mr-2 h-4 w-4" />
+                                SQL Runner
                             </Button>
                             <Button
                                 variant={currentView === 'settings' ? 'secondary' : 'ghost'}
@@ -126,6 +255,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                                     <Button
                                         variant="ghost"
                                         className="w-full justify-start text-sm text-muted-foreground font-normal hover:bg-sidebar-accent hover:text-sidebar-accent-foreground truncate pr-8"
+                                        onClick={() => handleChatClick(chat.id)}
                                     >
                                         {chat.title}
                                     </Button>
@@ -180,7 +310,10 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                             Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => console.log("Sign out")}>
+                        <DropdownMenuItem onClick={() => {
+                            useAuthStore.getState().logout();
+                            toast.success("Logged out successfully");
+                        }}>
                             <LogOut className="mr-2 h-4 w-4" />
                             Log out
                         </DropdownMenuItem>
@@ -213,7 +346,38 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>Cancel</Button>
-                        <Button type="submit" onClick={handleRename}>Save changes</Button>
+                        <Button onClick={handleRename}>Save changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create New Chat Dialog */}
+            <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Name Your Chat</DialogTitle>
+                        <DialogDescription>
+                            Please give your new chat session a title to get started.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-chat-name" className="text-right">
+                                Title
+                            </Label>
+                            <Input
+                                id="new-chat-name"
+                                value={newChatTitle}
+                                onChange={(e) => setNewChatTitle(e.target.value)}
+                                className="col-span-3"
+                                onKeyDown={(e) => e.key === 'Enter' && handleCreateChat()}
+                                placeholder="e.g. Sales Analysis Q4"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsNewChatDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateChat}>Create Chat</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -257,7 +421,7 @@ export default function DashboardLayout({ children, currentView, onNavigate }: D
                 </header>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto">
+                <div className={`flex-1 ${currentView === 'chat' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     {children}
                 </div>
             </main>

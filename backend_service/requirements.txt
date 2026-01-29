@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+psycopg2-binary
+pydantic
+sqlalchemy
+pymysql
+cryptography
+pyodbc
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==3.2.0
+httpx
