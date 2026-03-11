@@ -118,7 +118,7 @@
   }
 
   body {
-    @apply bg-background text-foreground overflow-x-hidden;
+    @apply text-foreground overflow-x-hidden;
     touch-action: manipulation;
   }
 }

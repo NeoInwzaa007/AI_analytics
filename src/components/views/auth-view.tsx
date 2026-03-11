@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => void }) {
     const [isLogin, setIsLogin] = useState(true);
@@ -24,7 +25,7 @@ export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => voi
         e.preventDefault();
         setIsLoading(true);
 
-        const endpoint = isLogin ? 'http://localhost:8000/api/auth/login' : 'http://localhost:8000/api/auth/register';
+        const endpoint = isLogin ? `${API_BASE_URL}/api/auth/login` : `${API_BASE_URL}/api/auth/register`;
         const payload = isLogin
             ? { email: formData.email, password: formData.password }
             : { name: formData.name, email: formData.email, password: formData.password };

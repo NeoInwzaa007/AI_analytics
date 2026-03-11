@@ -85,10 +85,10 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full">
             {/* Chat Area */}
             <ScrollArea className="flex-1 p-4 md:p-6">
-                <div className="max-w-4xl mx-auto space-y-6 pb-20">
+                <div className="max-w-4xl mx-auto space-y-6 pb-4">
                     {messages.map((message) => (
                         <div
                             key={message.id}
@@ -130,7 +130,7 @@ export default function ChatInterface() {
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="p-3 md:p-4 bg-neutral-950 border-t border-neutral-800 absolute bottom-0 w-full z-10">
+            <div className="p-3 md:p-4 bg-neutral-950 border-t border-neutral-800 w-full z-10">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center">
                     <Input
                         value={inputValue}

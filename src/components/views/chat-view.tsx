@@ -12,7 +12,9 @@ import { useConnectionStore } from "@/store/useConnectionStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
-import { DynamicChart } from "@/components/ui/dynamic-chart";
+import ChatMessage from '@/components/chat-message';
+
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function ChatView() {
     const { activeConnectionId, isConnected } = useConnectionStore();
@@ -32,7 +34,7 @@ export default function ChatView() {
 
             try {
                 const token = useAuthStore.getState().token;
-                const res = await fetch(`http://localhost:8000/api/chat/${activeSessionId}/history`, {
+                const res = await fetch(`${API_BASE_URL}/api/chat/${activeSessionId}/history`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -80,13 +82,15 @@ export default function ChatView() {
     }, [messages, isLoading]);
 
     const handleSend = async () => {
-        if (!inputValue.trim() || isLoading) return;
+        if (isLoading) return;
 
         // Validation: Check for active connection
-        if (!isConnected || !activeConnectionId) {
+        if (!activeConnectionId) {
             toast.error("Please select a database connection first.");
             return;
         }
+
+        if (!inputValue.trim()) return;
 
         const userMessageContent = inputValue.trim();
         const userMessage: Message = {
@@ -103,7 +107,7 @@ export default function ChatView() {
 
         try {
             const token = useAuthStore.getState().token;
-            const response = await fetch('http://localhost:8000/api/chat', {
+            const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -169,73 +173,47 @@ export default function ChatView() {
     };
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Header */}
-            <div className="flex flex-col space-y-2 p-4 md:p-6 md:pb-2">
+            <div className="flex flex-col space-y-2 p-4 md:p-6 md:pb-2 shrink-0">
                 <h2 className="text-xl md:text-3xl font-bold tracking-tight text-foreground">Chat Query</h2>
                 <p className="text-sm md:text-base text-muted-foreground">Ask questions and analyze your data with AI.</p>
             </div>
 
             {/* Chat Area */}
-            <ScrollArea className="flex-1 p-4 md:p-6 pt-0 md:pt-4">
-                <div className="max-w-4xl mx-auto space-y-6 pb-32">
-                    {messages.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground opacity-50">
-                            <Bot size={48} className="mb-4" />
-                            <p>Start a new conversation...</p>
-                        </div>
-                    )}
-
-                    {messages.map((message) => (
-                        <div
-                            key={message.id}
-                            className={`flex gap-3 md:gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                        >
-                            <Avatar className={`h-8 w-8 md:h-10 md:w-10 border ${message.role === 'ai' ? 'bg-primary border-primary' : 'bg-secondary border-secondary'}`}>
-                                <AvatarFallback className="text-primary-foreground bg-transparent">
-                                    {message.role === 'ai' ? <Bot size={16} className="md:w-5 md:h-5 text-primary-foreground" /> : <User size={16} className="md:w-5 md:h-5 text-secondary-foreground" />}
-                                </AvatarFallback>
-                            </Avatar>
-
-                            <div className={`flex flex-col max-w-[85%] md:max-w-[80%] ${message.role === 'user' ? 'items-end' : (message.chart ? 'w-full' : 'items-start')}`}>
-                                {(!message.chart || (message.content && message.content !== "No response content")) && (
-                                    <div className={`px-4 py-2 md:px-5 md:py-3 rounded-2xl shadow-sm ${message.role === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                                        : 'bg-muted text-foreground border border-border rounded-tl-sm'
-                                        }`}>
-                                        <p className="leading-relaxed text-sm lg:text-base whitespace-pre-wrap">{message.content || "No response content"}</p>
-                                    </div>
-                                )}
-
-                                {message.type === 'chart' && message.chart && (
-                                    <DynamicChart chart={message.chart} />
-                                )}
-
-                                <span className="text-[10px] md:text-xs text-muted-foreground mt-1 px-1" suppressHydrationWarning>
-                                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+            <div className="flex-1 min-h-0 overflow-hidden relative font-sans">
+                <ScrollArea className="h-full w-full p-4 md:p-6 pt-0 md:pt-4">
+                    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+                        {messages.length === 0 && !isLoading && (
+                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground opacity-50">
+                                <Bot size={48} className="mb-4" />
+                                <p>Start a new conversation...</p>
                             </div>
-                        </div>
-                    ))}
+                        )}
 
-                    {/* Loading State */}
-                    {isLoading && (
-                        <div className="flex gap-3 md:gap-4 flex-row">
-                            <Avatar className="h-8 w-8 md:h-10 md:w-10 border bg-primary border-primary">
-                                <AvatarFallback className="text-primary-foreground bg-transparent"><Bot size={16} className="md:w-5 md:h-5" /></AvatarFallback>
-                            </Avatar>
-                            <div className="flex items-center space-x-2 bg-muted px-4 py-3 rounded-2xl rounded-tl-sm border border-border text-muted-foreground">
-                                <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce"></div>
+                        {messages.map((message) => (
+                            <ChatMessage key={message.id} message={message} />
+                        ))}
+
+                        {/* Loading State */}
+                        {isLoading && (
+                            <div className="flex gap-3 md:gap-4 flex-row">
+                                <Avatar className="h-8 w-8 md:h-10 md:w-10 border bg-primary border-primary">
+                                    <AvatarFallback className="text-primary-foreground bg-transparent"><Bot size={16} className="md:w-5 md:h-5" /></AvatarFallback>
+                                </Avatar>
+                                <div className="flex items-center space-x-2 bg-muted px-4 py-3 rounded-2xl rounded-tl-sm border border-border text-muted-foreground">
+                                    <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="h-2 w-2 bg-foreground/40 rounded-full animate-bounce"></div>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    <div ref={scrollRef} />
-                </div>
-            </ScrollArea>
+                        )}
+                        <div ref={scrollRef} />
+                    </div>
+                </ScrollArea>
+            </div>
 
-            <div className="px-4 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border absolute bottom-0 w-full z-50">
+            <div className="px-4 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border w-full z-10">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-end">
                     <Textarea
                         value={inputValue}

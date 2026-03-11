@@ -38,6 +38,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useChatStore } from "@/store/useChatStore";
 
+import { API_BASE_URL } from "@/lib/api-config";
+
 const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, onNavigate: (view: ViewType) => void }) => {
     // Initialize with empty array as requested
     const [recentChats, setRecentChats] = useState<any[]>([]);
@@ -63,7 +65,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
                 if (!token) return;
 
-                const res = await fetch('http://localhost:8000/api/chat/sessions', {
+                const res = await fetch(`${API_BASE_URL}/api/chat/sessions`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -86,7 +88,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
     const handleDelete = async (id: string) => {
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch(`http://localhost:8000/api/chat/sessions/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/chat/sessions/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -119,7 +121,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
             try {
                 const token = useAuthStore.getState().token;
 
-                const res = await fetch(`http://localhost:8000/api/chat/sessions/${editingChat.id}`, {
+                const res = await fetch(`${API_BASE_URL}/api/chat/sessions/${editingChat.id}`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -153,7 +155,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch('http://localhost:8000/api/chat/sessions', {
+            const res = await fetch(`${API_BASE_URL}/api/chat/sessions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -293,12 +295,12 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="w-full flex items-center justify-start gap-3 p-2 h-auto hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src="https://github.com/shadcn.png" />
-                                <AvatarFallback>CN</AvatarFallback>
+                                <AvatarImage src={useAuthStore((state) => state.user?.avatar_url) || "https://github.com/shadcn.png"} />
+                                <AvatarFallback>{useAuthStore((state) => state.user?.name?.slice(0, 2).toUpperCase() || "CN")}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col items-start text-left">
-                                <span className="text-sm font-medium">John Doe</span>
-                                <span className="text-xs text-muted-foreground">Admin</span>
+                                <span className="text-sm font-medium">{useAuthStore((state) => state.user?.name || "User")}</span>
+                                <span className="text-xs text-muted-foreground">{useAuthStore((state) => state.user?.email || "User")}</span>
                             </div>
                         </Button>
                     </DropdownMenuTrigger>
@@ -387,7 +389,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
 export default function DashboardLayout({ children, currentView, onNavigate }: DashboardLayoutProps) {
     return (
-        <div className="flex h-screen w-full bg-background/30 text-foreground overflow-hidden font-sans">
+        <div className="flex h-screen w-full bg-transparent text-foreground overflow-hidden font-sans">
             {/* Desktop Sidebar */}
             <aside className="hidden md:flex w-64 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-md shrink-0">
                 <SidebarContent currentView={currentView} onNavigate={onNavigate} />

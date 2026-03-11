@@ -51,12 +51,9 @@ function FloatingParticles({ count = 200 }) {
 
 export default function Background3D() {
     return (
-        <div className="fixed inset-0 z-[-1] bg-black pointer-events-none">
-            <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+        <div className="fixed inset-0 z-[-1] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#000] to-[#000] pointer-events-none">
+            <Canvas camera={{ position: [0, 0, 1] }}>
                 <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} intensity={1} color="#6366f1" />
-                <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
-
                 <FloatingParticles />
                 <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
             </Canvas>

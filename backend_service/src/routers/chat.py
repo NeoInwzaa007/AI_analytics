@@ -18,7 +18,7 @@ router = APIRouter(
     tags=["chat"]
 )
 
-N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "")
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL") or os.getenv("NEXT_PUBLIC_N8N_CHAT_WEBHOOK") or ""
 
 @router.post("/", response_model=ChatResponse)
 async def send_message(

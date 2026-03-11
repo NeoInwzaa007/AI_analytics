@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "next-themes";
+import { useAuthStore } from "@/store/use-auth-store";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function SettingsView() {
     const { setTheme, theme } = useTheme();
@@ -19,14 +21,130 @@ export default function SettingsView() {
     const [realTimeAlerts, setRealTimeAlerts] = useState(true);
     const [marketingEmails, setMarketingEmails] = useState(false);
 
-    // Prevent hydration mismatch
+    // Profile State
+    // Initialize with store data to prevent empty flash
+    const user = useAuthStore((state) => state.user);
+    const [name, setName] = useState(user?.name || "");
+    const [email, setEmail] = useState(user?.email || "");
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || "");
+    const [isLoading, setIsLoading] = useState(false);
+
+    // File upload ref
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Fetch User Data
     useEffect(() => {
-        // eslint-disable-next-line
         setMounted(true);
+        const fetchUser = async () => {
+            const token = useAuthStore.getState().token;
+            console.log("Fetching user profile...", { token: !!token });
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setName(data.name);
+                    setEmail(data.email);
+                    if (data.avatar_url) {
+                        setAvatarUrl(data.avatar_url);
+                        // Also update store to keep in sync
+                        useAuthStore.getState().updateUser(data);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch user profile", error);
+            }
+        };
+        fetchUser();
     }, []);
 
-    const handleSave = () => {
-        toast.success("Settings saved successfully");
+    const handleSave = async () => {
+        setIsLoading(true);
+        const token = useAuthStore.getState().token;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email })
+            });
+
+            if (res.ok) {
+                const updatedUser = await res.json();
+                // Update Global Store
+                useAuthStore.getState().updateUser(updatedUser);
+                toast.success("Profile updated successfully");
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Failed to update profile");
+            }
+        } catch (error) {
+            console.error("Update error", error);
+            toast.error("Error updating profile");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Size Validation (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB");
+            return;
+        }
+
+        // Type Validation
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Only JPG, PNG, and WEBP allowed");
+            return;
+        }
+
+        // Upload Logic
+        const token = useAuthStore.getState().token;
+        const formData = new FormData();
+        formData.append("file", file); // 'file' matches the backend parameter name
+
+        const toastId = toast.loading("Uploading avatar...");
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                    // Do NOT set Content-Type header when using FormData; browser sets it with boundary
+                },
+                body: formData
+            });
+
+            if (res.ok) {
+                const updatedUser = await res.json();
+                setAvatarUrl(updatedUser.avatar_url);
+                useAuthStore.getState().updateUser(updatedUser);
+                toast.success("Avatar updated successfully", { id: toastId });
+            } else {
+                const err = await res.json();
+                console.error("Upload failed", err);
+                toast.error(err.detail || "Failed to upload avatar", { id: toastId });
+            }
+        } catch (error) {
+            console.error("Upload error", error);
+            toast.error("Network error during upload", { id: toastId });
+        } finally {
+            // Reset input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
     };
 
     if (!mounted) {
@@ -56,23 +174,48 @@ export default function SettingsView() {
                         <CardContent className="space-y-6">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-20 w-20">
-                                    <AvatarImage src="https://github.com/shadcn.png" />
-                                    <AvatarFallback>JD</AvatarFallback>
+                                    <AvatarImage src={avatarUrl || "https://github.com/shadcn.png"} />
+                                    <AvatarFallback>{name ? name.slice(0, 2).toUpperCase() : 'JD'}</AvatarFallback>
                                 </Avatar>
-                                <Button variant="outline" className="bg-transparent border-input hover:bg-accent text-foreground">Change Avatar</Button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept=".jpg,.jpeg,.png,.webp"
+                                    onChange={handleFileChange}
+                                />
+                                <Button
+                                    variant="outline"
+                                    className="bg-transparent border-input hover:bg-accent text-foreground"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    Change Avatar
+                                </Button>
                             </div>
                             <Separator className="bg-border" />
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="name" className="text-foreground">Display Name</Label>
-                                    <Input id="name" defaultValue="John Doe" className="bg-background border-input text-foreground" />
+                                    <Input
+                                        id="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="text-foreground">Email</Label>
-                                    <Input id="email" defaultValue="john.doe@example.com" className="bg-background border-input text-foreground" />
+                                    <Input
+                                        id="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                    />
                                 </div>
                             </div>
-                            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Changes</Button>
+                            <Button onClick={handleSave} disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                                {isLoading ? "Saving..." : "Save Changes"}
+                            </Button>
                         </CardContent>
                     </Card>
 

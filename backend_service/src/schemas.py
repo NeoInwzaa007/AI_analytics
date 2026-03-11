@@ -37,3 +37,27 @@ class ChatSessionUpdate(BaseModel):
 
 class CreateChatSessionRequest(BaseModel):
     title: str
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    avatar_url: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class UserUpdate(BaseModel):
+    name: str
+    email: str
+
+class ColumnSchema(BaseModel):
+    name: str
+    type: str
+
+class TableSchema(BaseModel):
+    name: str
+    columns: List[ColumnSchema]
+
+class SchemaResponse(BaseModel):
+    tables: List[TableSchema]

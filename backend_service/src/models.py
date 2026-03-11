@@ -24,6 +24,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password_hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    avatar_url = Column(String, nullable=True)
 
     chat_sessions = relationship("ChatSession", back_populates="user")
 

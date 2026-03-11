@@ -1,19 +1,35 @@
+from dotenv import load_dotenv
+import pathlib
+import os
+
+# Load .env.local from project root (parent of backend_service)
+# We do this BEFORE other imports so they see the env vars
+env_path = pathlib.Path(__file__).parent.parent / '.env.local'
+load_dotenv(dotenv_path=env_path)
+
 from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import os
 import uvicorn
 import logging
 import re
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
-from cryptography.fernet import Fernet
 from typing import Optional, List
 import src.dependencies
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+from src.routers import connections
+from src.security import (
+    encrypt_password, 
+    decrypt_password, 
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from src.dependencies import verify_api_key
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,12 +46,23 @@ from src import models
 models.Base.metadata.create_all(bind=engine)
 
 app.include_router(chat.router)
+from src.routers import users
+app.include_router(users.router)
+from src.routers import dashboard
+app.include_router(dashboard.router)
+app.include_router(connections.router)
 
 @app.on_event("startup")
 async def startup_event():
     try:
         logger.info("Checking database connection...")
         with engine.connect() as conn:
+            # Check/Add avatar_url column
+            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='avatar_url'"))
+            if not result.fetchone():
+                 logger.info("Adding avatar_url column to users table")
+                 conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255)"))
+                 conn.commit()
             pass
         logger.info("Database connection successful.")
     except Exception as e:
@@ -66,12 +93,8 @@ try:
         if not DB_PASS: DB_PASS = "password"
         if not API_KEY: API_KEY = "my-secret-api-key"
 
-    # Auth Configuration
-    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-keep-it-safe")
-    ALGORITHM = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    # Auth Configuration - Managed in src/security.py
+    # SECRET_KEY and pwd_context removed from here
 
 except Exception as e:
     logger.error(f"Configuration Error: {e}")
@@ -116,54 +139,8 @@ class Token(BaseModel):
     token_type: str
     user: dict
 
-# Setup Encryption
-try:
-    # Load key from environment (persistent) or generate new one (ephemeral)
-    env_key = os.getenv("ENCRYPTION_KEY")
-    if env_key:
-        ENCRYPTION_KEY = env_key.encode() if isinstance(env_key, str) else env_key
-    else:
-        logger.warning("ENCRYPTION_KEY not found in env. Generating ephemeral key (passwords will be lost on restart).")
-        ENCRYPTION_KEY = Fernet.generate_key()
-    
-    cipher_suite = Fernet(ENCRYPTION_KEY)
-except Exception as e:
-    logger.error(f"Encryption Key Error: {e}")
-    # Fallback to prevent crash, but strictly this should be fatal in prod
-    ENCRYPTION_KEY = Fernet.generate_key()
-    cipher_suite = Fernet(ENCRYPTION_KEY)
-
-def encrypt_password(password: str) -> str:
-    if not password: return None
-    return cipher_suite.encrypt(password.encode()).decode()
-
-def decrypt_password(encrypted_password: str) -> str:
-    if not encrypted_password: return None
-    return cipher_suite.decrypt(encrypted_password.encode()).decode()
-
-import hashlib
-
-# Auth Utils
-def verify_password(plain_password, hashed_password):
-    # Pre-hash to handle long passwords (>72 bytes)
-    # Using SHA256 hexdigest ensures input to bcrypt is always 64 chars
-    hashed_input = hashlib.sha256(plain_password.encode()).hexdigest()
-    return pwd_context.verify(hashed_input, hashed_password)
-
-def get_password_hash(password):
-    # Pre-hash to handle long passwords (>72 bytes)
-    hashed_input = hashlib.sha256(password.encode()).hexdigest()
-    return pwd_context.hash(hashed_input)
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+# Setup Encryption - Managed in src/security.py
+# Auth Utils - Managed in src/security.py
 
 def get_db_connection():
     try:
@@ -178,10 +155,7 @@ def get_db_connection():
         logger.error(f"Database connection failed: {e}")
         raise HTTPException(status_code=500, detail="Database connection string failed")
 
-async def verify_api_key(x_api_key: str = Header(None)):
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return x_api_key
+# verify_api_key moved to src.dependencies
 
 @app.get("/")
 def read_root():
@@ -646,8 +620,8 @@ def login_user(user: UserLogin):
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         # Find user
-        # We need password_hash. If table doesn't have it, login fails.
-        cur.execute("SELECT id, name, email, password_hash FROM users WHERE email = %s", (user.email,))
+        # We need password_hash and now avatar_url.
+        cur.execute("SELECT id, name, email, password_hash, avatar_url FROM users WHERE email = %s", (user.email,))
         db_user = cur.fetchone()
         cur.close()
 
@@ -675,7 +649,8 @@ def login_user(user: UserLogin):
             "user": {
                 "id": db_user['id'],
                 "name": db_user['name'],
-                "email": db_user['email']
+                "email": db_user['email'],
+                "avatar_url": db_user.get('avatar_url')
             }
         }
 
