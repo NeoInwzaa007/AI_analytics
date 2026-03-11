@@ -14,7 +14,7 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
 import ChatMessage from '@/components/chat-message';
 
-import { API_BASE_URL } from "@/lib/api-config";
+
 
 export default function ChatView() {
     const { activeConnectionId, isConnected } = useConnectionStore();
@@ -34,7 +34,7 @@ export default function ChatView() {
 
             try {
                 const token = useAuthStore.getState().token;
-                const res = await fetch(`${API_BASE_URL}/api/chat/${activeSessionId}/history`, {
+                const res = await fetch(`/api/chat/${activeSessionId}/history`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -107,7 +107,7 @@ export default function ChatView() {
 
         try {
             const token = useAuthStore.getState().token;
-            const response = await fetch(`${API_BASE_URL}/api/chat`, {
+            const response = await fetch(`/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -144,8 +144,23 @@ export default function ChatView() {
             if (data.content_type === 'chart') {
                 try {
                     const parsed = JSON.parse(aiContent);
+                    // Handle wrapped structure: { message: "...", data: [...] }
                     aiContent = parsed.message || parsed.text || aiContent;
-                    aiChart = parsed.chart;
+
+                    // Extract Chart Data from nested structure
+                    // Target: data[0].chart_meta (Primary source)
+                    // Fallback: chart_meta (Legacy)
+                    if (parsed.data && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                        const chartData = parsed.data[0];
+                        aiChart = {
+                            chart_meta: chartData.chart_meta,
+                            raw: chartData.raw
+                        };
+                    } else if (parsed.chart) {
+                        // Legacy support
+                        aiChart = parsed.chart;
+                    }
+
                     aiType = 'chart';
                 } catch (e) {
                     console.error("Failed to parse chart JSON", e);

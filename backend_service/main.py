@@ -42,8 +42,12 @@ from src.routers import chat
 from src.database import engine
 from src import models
 
-# Create tables for chat system
-models.Base.metadata.create_all(bind=engine)
+# Create tables for chat system (Safe initialization)
+try:
+    models.Base.metadata.create_all(bind=engine)
+    logger.info("Chat system tables initialized successfully.")
+except Exception as e:
+    logger.warning(f"Failed to initialize chat system tables, continuing startup. Error: {e}")
 
 app.include_router(chat.router)
 from src.routers import users
@@ -51,6 +55,9 @@ app.include_router(users.router)
 from src.routers import dashboard
 app.include_router(dashboard.router)
 app.include_router(connections.router)
+
+from src.routers import auth
+app.include_router(auth.router)
 
 @app.on_event("startup")
 async def startup_event():
@@ -66,14 +73,18 @@ async def startup_event():
             pass
         logger.info("Database connection successful.")
     except Exception as e:
-        logger.error(f"STARTUP ERROR: Could not connect to the database. If running locally, make sure DB_HOST is set to 'localhost'. Error: {e}")
+        logger.warning(f"Database connection failed, continuing startup. Error: {e}")
 
 from fastapi.middleware.cors import CORSMiddleware
 
+cors_origins_str = os.getenv("CORS_ORIGINS", "")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",")] if cors_origins_str else ["*"]
+allow_creds = "*" not in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for dev, or specific ["http://localhost:3000"]
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -125,31 +136,22 @@ class ConnectionResponse(BaseModel):
     username: Optional[str]
     created_at: str
 
-class UserRegister(BaseModel):
-    name: str
-    email: str
-    password: str
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-    user: dict
-
 # Setup Encryption - Managed in src/security.py
 # Auth Utils - Managed in src/security.py
 
 def get_db_connection():
     try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS
-        )
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # Render postgres puts postgresql:// in the URL, psycopg2 supports this natively
+            conn = psycopg2.connect(database_url)
+        else:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS
+            )
         return conn
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
@@ -539,7 +541,14 @@ def get_connection(connection_id: int):
             raise HTTPException(status_code=404, detail="Connection not found")
             
         # Decrypt password so n8n can use it
-        connection['password'] = decrypt_password(connection['password'])
+        try:
+            connection['password'] = decrypt_password(connection['password'])
+        except Exception:
+            # If decryption fails (e.g. key changed), return specific error to prompt re-connection
+            raise HTTPException(
+                status_code=400, 
+                detail="Connection credentials validity expired (Encryption Key Rotated). Please edit and save connection again."
+            )
         
         return connection
     except HTTPException:
@@ -550,120 +559,6 @@ def get_connection(connection_id: int):
     finally:
         if conn: conn.close()
 
-# Auth Endpoints
-@app.post("/api/auth/register", response_model=dict)
-def register_user(user: UserRegister):
-    conn = None
-    try:
-        logger.info(f"Registering user: {user.email}, password_len: {len(user.password)}")
-        return register_user_logic(user)
-    except Exception as e:
-        logger.error(f"Register wrapper error: {e}")
-        raise e
-
-def register_user_logic(user: UserRegister):
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Check if email exists
-        cur.execute("SELECT id FROM users WHERE email = %s", (user.email,))
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        # Hash password
-        hashed_password = get_password_hash(user.password)
-
-        # Insert user (Ensure users table has password_hash column via migration or manual update if needed. 
-        # Assuming schema allows nullable or we add it. Ideally valid schema is 'name', 'email', 'password_hash')
-        # NOTE: If schema update is needed, user needs to run it. We assume current schema can support it or we add column implicitly if not exists?
-        # Safe bet: Try insert with password_hash. If fails, user needs schema update.
-        # Based on previous task, users table exists with name, email. We need to store password.
-        
-        # Check if password_hash column exists
-        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash'")
-        if not cur.fetchone():
-             # Auto-migration for dev convenience (Not for prod usually)
-             logger.info("Adding password_hash column to users table")
-             cur.execute("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)")
-        
-        insert_query = """
-        INSERT INTO users (name, email, password_hash)
-        VALUES (%s, %s, %s)
-        RETURNING id;
-        """
-        cur.execute(insert_query, (user.name, user.email, hashed_password))
-        new_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-
-        return {"status": "success", "message": "User registered successfully", "id": new_id}
-
-    except psycopg2.Error as e:
-        logger.error(f"Register DB Error: {e}")
-        if conn: conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Register Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if conn: conn.close()
-
-@app.post("/api/auth/login", response_model=Token)
-def login_user(user: UserLogin):
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-
-        # Find user
-        # We need password_hash and now avatar_url.
-        cur.execute("SELECT id, name, email, password_hash, avatar_url FROM users WHERE email = %s", (user.email,))
-        db_user = cur.fetchone()
-        cur.close()
-
-        if not db_user:
-            raise HTTPException(status_code=400, detail="Incorrect email or password")
-            
-        if not db_user['password_hash']:
-             # Legacy user without password
-             raise HTTPException(status_code=400, detail="User has no password set. Please contact admin.")
-
-        # Verify password
-        if not verify_password(user.password, db_user['password_hash']):
-            raise HTTPException(status_code=400, detail="Incorrect email or password")
-
-        # Generate JWT
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": str(db_user['id']), "email": db_user['email']},
-            expires_delta=access_token_expires
-        )
-
-        return {
-            "access_token": access_token, 
-            "token_type": "bearer",
-            "user": {
-                "id": db_user['id'],
-                "name": db_user['name'],
-                "email": db_user['email'],
-                "avatar_url": db_user.get('avatar_url')
-            }
-        }
-
-    except psycopg2.Error as e:
-        logger.error(f"Login DB Error: {e}")
-        raise HTTPException(status_code=500, detail="Database error during login")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Login Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if conn: conn.close()
-
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -25,8 +25,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // Fix Node.js 17+ localhost resolving to ::1 issues by forcing 127.0.0.1
-        targetUrl = webhookUrl.replace('localhost', '127.0.0.1');
+        targetUrl = webhookUrl;
         console.log(`DEBUG: Proxying to ${targetUrl}`);
 
         const response = await fetch(targetUrl, {
@@ -58,6 +57,20 @@ export async function POST(request: Request) {
                 details: error instanceof Error ? error.message : String(error),
                 url: typeof targetUrl !== 'undefined' ? targetUrl : 'undefined'
             },
+            { status: 500 }
+        );
+    }
+}
+
+export async function GET(request: Request) {
+    try {
+        return NextResponse.json({
+            status: "ok",
+            message: "Chat API is accessible. Please use POST to interact with this endpoint."
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: "Internal Server Error" },
             { status: 500 }
         );
     }

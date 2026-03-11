@@ -119,7 +119,7 @@ export default function ConnectionsView() {
                 payload.password = formData.password;
             }
 
-            const response = await fetch(webhookUrl, {
+            const response = await fetch('/api/db-connect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

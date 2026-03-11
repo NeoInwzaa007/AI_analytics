@@ -1,17 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 export async function GET(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const connectionId = params.id;
+        const { id } = await context.params;
+        const connectionId = id;
 
         if (!connectionId) {
             return NextResponse.json({ error: 'Connection ID is required' }, { status: 400 });
         }
 
-        const startUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+        const startUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        if (!startUrl) {
+            console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
+            return NextResponse.json({ error: 'Server Configuration Error: API URL missing' }, { status: 500 });
+        }
         const baseUrl = startUrl.replace(/\/$/, '');
         // Backend router has prefix /api/connections
         const backendUrl = `${baseUrl}/api/connections/${connectionId}/schema`;

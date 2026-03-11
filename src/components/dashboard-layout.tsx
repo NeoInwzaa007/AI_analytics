@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useChatStore } from "@/store/useChatStore";
 
-import { API_BASE_URL } from "@/lib/api-config";
+
 
 const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, onNavigate: (view: ViewType) => void }) => {
     // Initialize with empty array as requested
@@ -65,7 +65,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
                 if (!token) return;
 
-                const res = await fetch(`${API_BASE_URL}/api/chat/sessions`, {
+                const res = await fetch(`/api/chat/sessions`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -88,7 +88,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
     const handleDelete = async (id: string) => {
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch(`${API_BASE_URL}/api/chat/sessions/${id}`, {
+            const res = await fetch(`/api/chat/sessions/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -121,7 +121,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
             try {
                 const token = useAuthStore.getState().token;
 
-                const res = await fetch(`${API_BASE_URL}/api/chat/sessions/${editingChat.id}`, {
+                const res = await fetch(`/api/chat/sessions/${editingChat.id}`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -155,7 +155,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch(`${API_BASE_URL}/api/chat/sessions`, {
+            const res = await fetch(`/api/chat/sessions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

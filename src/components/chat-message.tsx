@@ -10,6 +10,8 @@ interface ChatMessageProps {
     message: Message;
 }
 
+import { extractChartData } from '@/lib/chart-utils';
+
 const ChatMessage = memo(({ message }: ChatMessageProps) => {
     return (
         <div
@@ -22,7 +24,8 @@ const ChatMessage = memo(({ message }: ChatMessageProps) => {
             </Avatar>
 
             <div className={`flex flex-col max-w-[85%] md:max-w-[80%] ${message.role === 'user' ? 'items-end' : (message.chart ? 'w-full' : 'items-start')}`}>
-                {(!message.chart || (message.content && message.content !== "No response content")) && (
+                {/* Text Bubble: Only render if NO chart is present, or if it's a user message */}
+                {(!message.chart || message.role === 'user') && (
                     <div className={`px-4 py-2 md:px-5 md:py-3 rounded-2xl shadow-sm ${message.role === 'user'
                         ? 'bg-primary text-primary-foreground rounded-tr-sm'
                         : 'bg-muted text-foreground border border-border rounded-tl-sm'
@@ -33,7 +36,7 @@ const ChatMessage = memo(({ message }: ChatMessageProps) => {
 
                 {message.type === 'chart' && message.chart && (
                     <div className="w-full mt-2" style={{ minHeight: '400px' }}>
-                        <DynamicChart chart={message.chart} />
+                        <DynamicChart chart={extractChartData(message.chart) || { raw: [], chart_meta: { chart_type: 'bar', x: '', y: '' } }} />
                     </div>
                 )}
 

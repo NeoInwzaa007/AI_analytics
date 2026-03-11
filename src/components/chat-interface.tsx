@@ -10,6 +10,46 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Message } from '@/types/chat';
 import { DynamicChart } from '@/components/ui/dynamic-chart';
 
+const extractChartData = (response: any) => {
+    if (!response) return null;
+
+    // Case 1: Nested in 'data' array (The current structure)
+    if (Array.isArray(response.data) && response.data.length > 0) {
+        const item = response.data[0];
+        if (item.chart_meta && item.raw) {
+            return { chart_meta: item.chart_meta, raw: item.raw };
+        }
+    }
+
+    // Case 2: Direct root object (Alternative structure)
+    if (response.chart_meta && response.raw) {
+        return { chart_meta: response.chart_meta, raw: response.raw };
+    }
+
+    // Case 3: Nested in 'chart' object
+    if (response.chart && response.chart.chart_meta) {
+        return { chart_meta: response.chart.chart_meta, raw: response.chart.raw };
+    }
+
+    // Case 4: Legacy/Mock structure (fallback for compatibility with existing mocks if they don't match strict)
+    // The current INITIAL_MESSAGES mock has { type, title, xKey, yKey, data }.
+    // We should adapt this to the strict structure if possible, or assume the mock will be updated.
+    // But dynamic-chart is STRICT now. So we must adapt.
+    if (response.xKey && response.yKey && response.data) {
+        return {
+            raw: response.data,
+            chart_meta: {
+                chart_type: response.type || 'bar',
+                x: response.xKey,
+                y: response.yKey,
+                title: response.title
+            }
+        };
+    }
+
+    return null;
+};
+
 const INITIAL_MESSAGES: Message[] = [
     {
         id: '1',
@@ -31,16 +71,18 @@ const INITIAL_MESSAGES: Message[] = [
         content: 'Here is the sales performance breakdown by product category for Q4. We saw a 20% uptake in Subscription Pro.',
         type: 'chart',
         chart: {
-            type: 'bar',
-            title: 'Q4 Sales Performance',
-            xKey: 'name',
-            yKey: 'sales',
             data: [
                 { name: 'Basic', sales: 4000 },
                 { name: 'Pro', sales: 3000 },
                 { name: 'Enterprise', sales: 2000 },
                 { name: 'Add-ons', sales: 2780 },
-            ]
+            ],
+            // Adapting mock to new strict structure (simulated via helper or direct)
+            // But let's use the helper's Case 4 for this.
+            type: 'bar',
+            title: 'Q4 Sales Performance',
+            xKey: 'name',
+            yKey: 'sales',
         },
         timestamp: new Date('2024-01-01T09:01:05')
     }
@@ -104,16 +146,19 @@ export default function ChatInterface() {
                             {/* Content */}
                             <div className={`flex flex-col max-w-[85%] md:max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
 
-                                <div className={`px-4 py-2 md:px-5 md:py-3 rounded-2xl shadow-sm ${message.role === 'user'
-                                    ? 'bg-blue-600 text-white rounded-tr-sm'
-                                    : 'bg-neutral-800 text-neutral-100 border border-neutral-700 rounded-tl-sm'
-                                    }`}>
-                                    <p className="leading-relaxed text-sm lg:text-base whitespace-pre-wrap">{message.content}</p>
-                                </div>
+                                {/* Text Bubble: Only render if NO chart is present, or if it's a user message */}
+                                {(!message.chart || message.role === 'user') && (
+                                    <div className={`px-4 py-2 md:px-5 md:py-3 rounded-2xl shadow-sm ${message.role === 'user'
+                                        ? 'bg-blue-600 text-white rounded-tr-sm'
+                                        : 'bg-neutral-800 text-neutral-100 border border-neutral-700 rounded-tl-sm'
+                                        }`}>
+                                        <p className="leading-relaxed text-sm lg:text-base whitespace-pre-wrap">{message.content}</p>
+                                    </div>
+                                )}
 
                                 {/* Chart Render */}
                                 {message.type === 'chart' && message.chart && (
-                                    <DynamicChart chart={message.chart} />
+                                    <DynamicChart chart={extractChartData(message.chart) || { raw: [], chart_meta: { chart_type: 'bar', x: '', y: '' } }} />
                                 )}
 
                                 <span

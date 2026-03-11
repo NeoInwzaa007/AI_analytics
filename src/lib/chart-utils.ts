@@ -73,3 +73,30 @@ export function isValidChartConfig(config: ChartPayload): boolean {
 
     return false;
 }
+
+export const extractChartData = (response: any) => {
+    if (!response) return null;
+
+    // Case 1: Nested in 'data' array
+    if (Array.isArray(response.data) && response.data.length > 0) {
+        const item = response.data[0];
+        if (item.chart_meta && item.raw) {
+            return { chart_meta: item.chart_meta, raw: item.raw };
+        }
+    }
+
+    // Case 2: Direct root object
+    if (response.chart_meta && response.raw) {
+        return { chart_meta: response.chart_meta, raw: response.raw };
+    }
+
+    // Case 3: Nested in 'chart' object
+    if (response.chart && response.chart.chart_meta) {
+        return { chart_meta: response.chart.chart_meta, raw: response.chart.raw };
+    }
+
+    // Case 4: Fallback/Strict Default
+    // If we have just 'data' but no meta, strict mode will fail anyway. 
+    // Return what we have if it matches shape or let it fail gracefully.
+    return response;
+};

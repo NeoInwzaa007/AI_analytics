@@ -20,7 +20,11 @@ export async function POST(request: Request) {
         };
 
         // URL Construction
-        const startUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+        const startUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        if (!startUrl) {
+            console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
+            return NextResponse.json({ error: 'Server Configuration Error: API URL missing' }, { status: 500 });
+        }
         // Remove trailing slash if present to avoid double slashes
         const baseUrl = startUrl.replace(/\/$/, '');
         // Append path if not already part of the env var (heuristic check)
@@ -53,8 +57,18 @@ export async function POST(request: Request) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Backend Error:', response.status, errorText);
+
+            // Try to parse upstream as JSON to extract detail, else fallback to string
+            let errorMsg = `Backend failed: ${response.statusText}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.detail) errorMsg = errorJson.detail;
+            } catch (e) {
+                // Not JSON, continue with text
+            }
+
             return NextResponse.json(
-                { error: `Backend failed: ${response.statusText}`, details: errorText },
+                { error: errorMsg, details: errorText },
                 { status: response.status }
             );
         }
@@ -79,6 +93,20 @@ export async function POST(request: Request) {
         console.error('Gateway Error:', error);
         return NextResponse.json(
             { error: 'Internal Server Error' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function GET(request: Request) {
+    try {
+        return NextResponse.json({
+            status: "ok",
+            message: "DB Connect API is accessible. Please use POST to interact with this endpoint."
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: "Internal Server Error" },
             { status: 500 }
         );
     }

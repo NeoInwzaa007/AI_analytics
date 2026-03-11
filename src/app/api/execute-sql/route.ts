@@ -10,7 +10,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
         }
 
-        let startUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+        let startUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        if (!startUrl) {
+            console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
+            return NextResponse.json({ error: 'Server Configuration Error: API URL missing' }, { status: 500 });
+        }
 
         // Heuristic to fix accidentally pasting the full connect URL into the env var
         if (startUrl.includes('/connections/connect')) {
@@ -59,6 +63,20 @@ export async function POST(request: Request) {
         console.error('SQL Execution Gateway Error:', error);
         return NextResponse.json(
             { error: 'Internal Server Error' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function GET(request: Request) {
+    try {
+        return NextResponse.json({
+            status: "ok",
+            message: "Execute SQL API is accessible. Please use POST to interact with this endpoint."
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { error: "Internal Server Error" },
             { status: 500 }
         );
     }
