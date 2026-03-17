@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, Bot, Loader2, AlertCircle } from 'lucide-react';
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -110,17 +110,12 @@ export default function ChatView() {
         try {
             const token = useAuthStore.getState().token;
             console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
-            const response = await apiFetch(`/api/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    message: userMessageContent,
-                    connection_id: activeConnectionId,
-                    session_id: activeSessionId // Send active session ID if exists
-                }),
+            const response = await apiPost(`/api/chat`, {
+                message: userMessageContent,
+                connection_id: activeConnectionId,
+                session_id: activeSessionId // Send active session ID if exists
+            }, {
+                'Authorization': `Bearer ${token}`
             });
 
             if (!response.ok) {

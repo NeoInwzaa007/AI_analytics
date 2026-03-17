@@ -1,9 +1,23 @@
 import { MessageType } from "@/types/chat";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://aianalytics-production.up.railway.app";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export const apiFetch = async (path: string, options?: RequestInit) => {
+    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
     return fetch(`${API_BASE}${path}`, options);
+};
+
+export const apiPost = async (path: string, body: any, customHeaders?: Record<string, string>) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (customHeaders) {
+        Object.assign(headers, customHeaders);
+    }
+    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+    return fetch(`${API_BASE}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+    });
 };
 
 export interface N8nResponse {
@@ -24,13 +38,7 @@ export async function sendMessageToN8n(messageContent: string): Promise<N8nRespo
     // Requirement is ZERO requests to vercel.app/api.
     // So all fetches should hit the railway backend directly.
     try {
-        const response = await fetch(`${API_BASE}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: messageContent }),
-        });
+        const response = await apiPost(`/api/chat`, { message: messageContent });
 
         if (!response.ok) {
             let errorMessage = `Server error: ${response.statusText}`;
@@ -66,3 +74,5 @@ export async function sendMessageToN8n(messageContent: string): Promise<N8nRespo
         throw new Error('Network error: Failed to connect to AI service.');
     }
 }
+
+console.log("API BASE:", process.env.NEXT_PUBLIC_API_URL);

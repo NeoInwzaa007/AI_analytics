@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LayoutDashboard, MessageSquare, Settings, Menu, Database } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiPost } from "@/lib/api";
 
 export type ViewType = 'dashboard' | 'chat' | 'settings' | 'connections' | 'landing' | 'sql';
 
@@ -157,13 +157,8 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
         try {
             const token = useAuthStore.getState().token;
-            const res = await apiFetch(`/api/chat/sessions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ title: newChatTitle.trim() })
+            const res = await apiPost(`/api/chat/sessions`, { title: newChatTitle.trim() }, {
+                'Authorization': `Bearer ${token}`
             });
 
             if (res.ok) {

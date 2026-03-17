@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { apiFetch } from "@/lib/api";
+import { apiPost } from "@/lib/api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -122,13 +122,7 @@ export default function ConnectionsView() {
             }
 
             console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
-            const response = await apiFetch(`/api/connections/connect`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            });
+            const response = await apiPost(`/api/connections/connect`, payload);
 
             if (!response.ok) {
                 throw new Error(`Connection failed: ${response.statusText}`);
