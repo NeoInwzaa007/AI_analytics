@@ -9,6 +9,7 @@ import { Play, Loader2, Database, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 import { useConnectionStore } from "@/store/useConnectionStore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { apiFetch } from "@/lib/api";
 
 interface QueryResult {
     columns: string[];
@@ -39,7 +40,8 @@ export default function SQLRunnerView() {
         setResult(null);
 
         try {
-            const response = await fetch('/api/execute-sql', {
+            console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+            const response = await apiFetch(`/api/execute-sql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,8 @@ export default function ConnectionsView() {
 
         try {
             // Use internal API proxy to avoid CORS
-            const webhookUrl = '/api/db-connect';
+            const API = process.env.NEXT_PUBLIC_API_URL || '';
+            const webhookUrl = `${API}/connections/connect`;
 
             // Construct payload dynamically
             interface ConnectionPayload {
@@ -119,7 +121,8 @@ export default function ConnectionsView() {
                 payload.password = formData.password;
             }
 
-            const response = await fetch('/api/db-connect', {
+            console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+            const response = await apiFetch(`/api/connections/connect`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

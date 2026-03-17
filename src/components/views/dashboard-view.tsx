@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 import { MessageSquare, Activity, Database, Clock } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,7 +52,8 @@ export default function DashboardView() {
 
             try {
                 // Fetch Stats
-                const statsRes = await fetch(`/api/dashboard/stats`, {
+                console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+                const statsRes = await apiFetch(`/api/dashboard/stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -63,7 +66,7 @@ export default function DashboardView() {
                 }
 
                 // Fetch Charts
-                const chartsRes = await fetch(`/api/dashboard/charts`, {
+                const chartsRes = await apiFetch(`/api/dashboard/charts`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 

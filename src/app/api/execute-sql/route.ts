@@ -10,7 +10,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
         }
 
-        let startUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        let startUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL;
         if (!startUrl) {
             console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
             return NextResponse.json({ error: 'Server Configuration Error: API URL missing' }, { status: 500 });

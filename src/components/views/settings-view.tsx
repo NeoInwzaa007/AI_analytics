@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/store/use-auth-store";
+import { apiFetch } from "@/lib/api";
 
 
 export default function SettingsView() {
@@ -41,7 +42,8 @@ export default function SettingsView() {
             if (!token) return;
 
             try {
-                const res = await fetch(`/api/users/me`, {
+                console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+                const res = await apiFetch(`/api/users/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -66,7 +68,7 @@ export default function SettingsView() {
         const token = useAuthStore.getState().token;
 
         try {
-            const res = await fetch(`/api/users/me`, {
+            const res = await apiFetch(`/api/users/me`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -117,7 +119,7 @@ export default function SettingsView() {
         const toastId = toast.loading("Uploading avatar...");
 
         try {
-            const res = await fetch(`/api/users/me/avatar`, {
+            const res = await apiFetch(`/api/users/me/avatar`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`

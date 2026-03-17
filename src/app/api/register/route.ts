@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         const payload = await req.json();
 
         // Ensure we strictly avoid localhost fallbacks
-        const baseUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL;
         if (!baseUrl) {
             console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
             return NextResponse.json({ success: false, message: 'Server Configuration Error: API URL missing' }, { status: 500 });

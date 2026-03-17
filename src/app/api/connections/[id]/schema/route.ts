@@ -12,7 +12,7 @@ export async function GET(
             return NextResponse.json({ error: 'Connection ID is required' }, { status: 400 });
         }
 
-        const startUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+        const startUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL;
         if (!startUrl) {
             console.error('BACKEND_API_URL or NEXT_PUBLIC_API_URL is not defined');
             return NextResponse.json({ error: 'Server Configuration Error: API URL missing' }, { status: 500 });

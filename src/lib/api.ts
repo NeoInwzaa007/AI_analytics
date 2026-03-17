@@ -1,5 +1,11 @@
 import { MessageType } from "@/types/chat";
 
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://aianalytics-production.up.railway.app";
+
+export const apiFetch = async (path: string, options?: RequestInit) => {
+    return fetch(`${API_BASE}${path}`, options);
+};
+
 export interface N8nResponse {
     answer: string;
     chartType?: MessageType; // 'text' | 'chart'
@@ -14,11 +20,11 @@ export class ApiError extends Error {
 }
 
 export async function sendMessageToN8n(messageContent: string): Promise<N8nResponse> {
-    // Use internal API proxy to avoid CORS
-    const webhookUrl = '/api/chat';
-
+    const webhookUrl = `/api/chat`; // Forwarding to the API proxy still, wait no, this needs to specify the final destination if skipping Next.js proxy, or keep proxy. 
+    // Requirement is ZERO requests to vercel.app/api.
+    // So all fetches should hit the railway backend directly.
     try {
-        const response = await fetch(webhookUrl, {
+        const response = await fetch(`${API_BASE}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

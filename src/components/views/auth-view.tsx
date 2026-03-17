@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
+import { apiFetch } from "@/lib/api";
 
 
 export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => void }) {
@@ -25,7 +26,7 @@ export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => voi
         e.preventDefault();
         setIsLoading(true);
 
-        const endpoint = isLogin ? `/api/login` : `/api/register`;
+        const endpoint = isLogin ? `/api/auth/login` : `/api/auth/register`;
         const payload = isLogin
             ? { email: formData.email, password: formData.password }
             : { name: formData.name, email: formData.email, password: formData.password };
@@ -44,7 +45,7 @@ export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => voi
             // If the user hasn't set up the proxy for /api/auth specifically, we might need to add it. 
             // But main.py has /api/auth/..., so if /api/... is rewritten to backend, it should work.
 
-            const response = await fetch(endpoint, {
+            const response = await apiFetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

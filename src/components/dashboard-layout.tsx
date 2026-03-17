@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LayoutDashboard, MessageSquare, Settings, Menu, Database } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 export type ViewType = 'dashboard' | 'chat' | 'settings' | 'connections' | 'landing' | 'sql';
 
@@ -65,7 +66,8 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
                 if (!token) return;
 
-                const res = await fetch(`/api/chat/sessions`, {
+                console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+                const res = await apiFetch(`/api/chat/sessions`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -88,7 +90,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
     const handleDelete = async (id: string) => {
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch(`/api/chat/sessions/${id}`, {
+            const res = await apiFetch(`/api/chat/sessions/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -121,7 +123,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
             try {
                 const token = useAuthStore.getState().token;
 
-                const res = await fetch(`/api/chat/sessions/${editingChat.id}`, {
+                const res = await apiFetch(`/api/chat/sessions/${editingChat.id}`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -155,7 +157,7 @@ const SidebarContent = ({ currentView, onNavigate }: { currentView: ViewType, on
 
         try {
             const token = useAuthStore.getState().token;
-            const res = await fetch(`/api/chat/sessions`, {
+            const res = await apiFetch(`/api/chat/sessions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
