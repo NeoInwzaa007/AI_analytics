@@ -77,15 +77,11 @@ async def startup_event():
 
 from fastapi.middleware.cors import CORSMiddleware
 
-cors_origins_str = os.getenv("CORS_ORIGINS", "")
-cors_origins = [origin.strip() for origin in cors_origins_str.split(",")] if cors_origins_str else ["*"]
-allow_creds = "*" not in cors_origins
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=allow_creds,
-    allow_methods=["*"],
+    allow_origins=["*"],  # allow all for now
+    allow_credentials=True,
+    allow_methods=["*"],  # CRITICAL for OPTIONS
     allow_headers=["*"],
 )
 
