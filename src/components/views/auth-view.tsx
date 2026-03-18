@@ -45,7 +45,17 @@ export default function AuthView({ onLoginSuccess }: { onLoginSuccess: () => voi
             // If the user hasn't set up the proxy for /api/auth specifically, we might need to add it. 
             // But main.py has /api/auth/..., so if /api/... is rewritten to backend, it should work.
 
-            const response = await apiPost(endpoint, payload);
+            let response;
+            if (!isLogin) {
+                console.log("🚀 CALLING: https://aianalytics-production.up.railway.app/api/auth/register");
+                response = await fetch("https://aianalytics-production.up.railway.app/api/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                response = await apiPost(endpoint, payload);
+            }
 
             if (!response.ok) {
                 const text = await response.text();

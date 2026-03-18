@@ -1,9 +1,10 @@
 import { MessageType } from "@/types/chat";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://aianalytics-production.up.railway.app";
+console.log("🚀 FINAL API BASE:", API_BASE);
 
 export const apiFetch = async (path: string, options?: RequestInit) => {
-    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+    console.log("🚀 CALLING:", `${API_BASE}${path}`);
     return fetch(`${API_BASE}${path}`, options);
 };
 
@@ -12,7 +13,7 @@ export const apiPost = async (path: string, body: any, customHeaders?: Record<st
     if (customHeaders) {
         Object.assign(headers, customHeaders);
     }
-    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+    console.log("🚀 CALLING:", `${API_BASE}${path}`);
     return fetch(`${API_BASE}${path}`, {
         method: "POST",
         headers,
