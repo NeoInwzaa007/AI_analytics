@@ -67,6 +67,10 @@ app.include_router(connections.router)
 from src.routers import auth
 app.include_router(auth.router)
 
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
+
 @app.on_event("startup")
 async def startup_event():
     try:
