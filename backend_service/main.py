@@ -64,7 +64,7 @@ from src.routers import dashboard
 app.include_router(dashboard.router)
 app.include_router(connections.router)
 
-print("AUTH ROUTER LOADED")
+print("AUTH ROUTER LOADED SUCCESSFULLY")
 from src.routers.auth import router as auth_router
 app.include_router(auth_router)
 
