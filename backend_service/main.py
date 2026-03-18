@@ -37,7 +37,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Integrated Chat System
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all for now
+    allow_credentials=True,
+    allow_methods=["*"],  # CRITICAL for OPTIONS
+    allow_headers=["*"],
+)
 from src.routers import chat
 from src.database import engine
 from src import models
@@ -74,16 +82,6 @@ async def startup_event():
         logger.info("Database connection successful.")
     except Exception as e:
         logger.warning(f"Database connection failed, continuing startup. Error: {e}")
-
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # allow all for now
-    allow_credentials=True,
-    allow_methods=["*"],  # CRITICAL for OPTIONS
-    allow_headers=["*"],
-)
 
 # Database Configuration
 try:
