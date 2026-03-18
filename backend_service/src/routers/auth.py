@@ -53,7 +53,10 @@ class Token(BaseModel):
 
 @router.post("/register")
 async def register(user: dict):
-    return {"message": "register success"}
+    return {
+        "message": "register success",
+        "data": user
+    }
 
 @router.post("/login", response_model=Token)
 def login_user(user: UserLogin):
