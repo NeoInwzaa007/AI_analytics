@@ -64,8 +64,9 @@ from src.routers import dashboard
 app.include_router(dashboard.router)
 app.include_router(connections.router)
 
-from src.routers import auth
-app.include_router(auth.router)
+print("AUTH ROUTER LOADED")
+from src.routers.auth import router as auth_router
+app.include_router(auth_router)
 
 @app.get("/ping")
 async def ping():
