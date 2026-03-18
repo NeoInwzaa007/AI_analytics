@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import JSONResponse
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import timedelta
@@ -55,17 +56,11 @@ class Token(BaseModel):
     token_type: str
     user: dict
 
-@router.post("/api/auth/register", response_model=dict)
+@router.post("/api/auth/register")
 def register_user(user: UserRegister):
-    conn = None
-    try:
-        logger.info(f"Registering user: {user.email}, password_len: {len(user.password)}")
-        return register_user_logic(user)
-    except Exception as e:
-        logger.error(f"Register wrapper error: {e}")
-        raise e
-
-def register_user_logic(user: UserRegister):
+    print("REGISTER HIT")
+    print(f"INPUT: {user.model_dump() if hasattr(user, 'model_dump') else user.dict()}")
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -74,7 +69,7 @@ def register_user_logic(user: UserRegister):
         # Check if email exists
         cur.execute("SELECT id FROM users WHERE email = %s", (user.email,))
         if cur.fetchone():
-            raise HTTPException(status_code=400, detail="Email already registered")
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Email already registered"})
 
         # Hash password
         hashed_password = get_password_hash(user.password)
@@ -94,17 +89,17 @@ def register_user_logic(user: UserRegister):
         conn.commit()
         cur.close()
 
-        return {"status": "success", "message": "User registered successfully", "id": new_id}
+        return JSONResponse(status_code=200, content={"status": "success", "data": {"id": new_id}, "message": "User registered successfully"})
 
     except psycopg2.Error as e:
+        print("DB ERROR:", str(e))
         logger.error(f"Register DB Error: {e}")
         if conn: conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    except HTTPException:
-        raise
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"Database error: {str(e)}"})
     except Exception as e:
+        print("GENERAL ERROR:", str(e))
         logger.error(f"Register Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
     finally:
         if conn: conn.close()
 
