@@ -40,7 +40,7 @@ def get_db_connection():
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth")
 
 class UserLogin(BaseModel):
     email: str
@@ -53,7 +53,7 @@ class Token(BaseModel):
 
 @router.post("/register")
 async def register(user: dict):
-    return {"message": "success", "data": user}
+    return {"message": "ok", "data": user}
 
 @router.post("/login", response_model=Token)
 def login_user(user: UserLogin):
