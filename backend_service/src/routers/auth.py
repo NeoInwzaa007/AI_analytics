@@ -40,7 +40,7 @@ def get_db_connection():
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/api/auth")
 
 class UserRegister(BaseModel):
     name: str
@@ -56,7 +56,7 @@ class Token(BaseModel):
     token_type: str
     user: dict
 
-@router.post("/api/auth/register")
+@router.post("/register")
 def register_user(user: UserRegister):
     print("REGISTER HIT")
     print(f"INPUT: {user.model_dump() if hasattr(user, 'model_dump') else user.dict()}")
@@ -103,7 +103,7 @@ def register_user(user: UserRegister):
     finally:
         if conn: conn.close()
 
-@router.post("/api/auth/login", response_model=Token)
+@router.post("/login", response_model=Token)
 def login_user(user: UserLogin):
     conn = None
     try:
