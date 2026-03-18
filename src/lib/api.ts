@@ -1,16 +1,22 @@
 import { MessageType } from "@/types/chat";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL;
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://aianalytics-production.up.railway.app";
 
-export async function apiPost(path: string, body: any) {
-  return fetch(`${API_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-}
+export const apiFetch = async (path: string, options?: RequestInit) => {
+    return fetch(`${API_URL}${path}`, options);
+};
+
+export const apiPost = async (path: string, body: any, customHeaders?: Record<string, string>) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (customHeaders) {
+        Object.assign(headers, customHeaders);
+    }
+    return fetch(`${API_URL}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+    });
+};
 
 export interface N8nResponse {
     answer: string;

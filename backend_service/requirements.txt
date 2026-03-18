@@ -8,4 +8,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 bcrypt
 
+httpx
 boto3
