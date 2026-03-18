@@ -40,12 +40,7 @@ def get_db_connection():
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/auth")
-
-class UserRegister(BaseModel):
-    name: str
-    email: str
-    password: str
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 class UserLogin(BaseModel):
     email: str
@@ -57,51 +52,8 @@ class Token(BaseModel):
     user: dict
 
 @router.post("/register")
-def register_user(user: UserRegister):
-    print("REGISTER HIT")
-    print(f"INPUT: {user.model_dump() if hasattr(user, 'model_dump') else user.dict()}")
-    
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Check if email exists
-        cur.execute("SELECT id FROM users WHERE email = %s", (user.email,))
-        if cur.fetchone():
-            return JSONResponse(status_code=400, content={"status": "error", "message": "Email already registered"})
-
-        # Hash password
-        hashed_password = get_password_hash(user.password)
-
-        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash'")
-        if not cur.fetchone():
-             logger.info("Adding password_hash column to users table")
-             cur.execute("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)")
-        
-        insert_query = """
-        INSERT INTO users (name, email, password_hash)
-        VALUES (%s, %s, %s)
-        RETURNING id;
-        """
-        cur.execute(insert_query, (user.name, user.email, hashed_password))
-        new_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-
-        return JSONResponse(status_code=200, content={"status": "success", "data": {"id": new_id}, "message": "User registered successfully"})
-
-    except psycopg2.Error as e:
-        print("DB ERROR:", str(e))
-        logger.error(f"Register DB Error: {e}")
-        if conn: conn.rollback()
-        return JSONResponse(status_code=500, content={"status": "error", "message": f"Database error: {str(e)}"})
-    except Exception as e:
-        print("GENERAL ERROR:", str(e))
-        logger.error(f"Register Error: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
-    finally:
-        if conn: conn.close()
+async def register(user: dict):
+    return {"message": "register success"}
 
 @router.post("/login", response_model=Token)
 def login_user(user: UserLogin):
