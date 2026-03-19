@@ -90,17 +90,16 @@ async def startup_event():
 
 # Database Configuration
 try:
-    DB_HOST = os.getenv("DB_HOST", "db")
-    DB_NAME = os.getenv("DB_NAME", "n8n_data")
+    DB_HOST = os.getenv("DB_HOST", "db.spombrmomrbfstknnukj.supabase.co")
+    DB_NAME = os.getenv("DB_NAME", "postgres")
     DB_USER = os.getenv("DB_USER", "postgres")
     # Critical secrets - should fail if missing in production, but we can leave defaults for dev if safe. 
     # User requested to put secrets in env, so we prioritize env.
-    DB_PASS = os.getenv("DB_PASS") 
+    DB_PASS = os.getenv("DB_PASS", "Neo6530202633") 
     API_KEY = os.getenv("API_KEY")
 
-    if not DB_PASS or not API_KEY:
-        logger.warning("DB_PASS or API_KEY not set in environment. Using unsafe defaults for dev only.")
-        if not DB_PASS: DB_PASS = "password"
+    if not API_KEY:
+        logger.warning("API_KEY not set in environment. Using default for dev only.")
         if not API_KEY: API_KEY = "my-secret-api-key"
 
     # Auth Configuration - Managed in src/security.py
@@ -142,15 +141,18 @@ def get_db_connection():
     try:
         database_url = os.getenv("DATABASE_URL")
         if database_url:
+            logger.info("Connecting to database using DATABASE_URL...")
             # Render postgres puts postgresql:// in the URL, psycopg2 supports this natively
             conn = psycopg2.connect(database_url)
         else:
+            logger.warning(f"DATABASE_URL not found. Falling back to DB_HOST: {DB_HOST}")
             conn = psycopg2.connect(
                 host=DB_HOST,
                 database=DB_NAME,
                 user=DB_USER,
                 password=DB_PASS
             )
+        logger.info("Database connection established successfully.")
         return conn
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
